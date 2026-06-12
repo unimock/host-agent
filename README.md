@@ -52,11 +52,14 @@ script.
 
 ## Install from package (Debian/Ubuntu)
 
-Download the `.deb` from the
-[releases page](https://github.com/unimock/host-agent/releases) and install it:
+Pick a version from the
+[releases page](https://github.com/unimock/host-agent/releases) and install it
+with `curl`:
 
 ```bash
-sudo apt install ./host-agent_*_all.deb
+VER=0.1.0
+curl -fsSL "https://github.com/unimock/host-agent/releases/download/${VER}/host-agent_${VER}_all.deb" \
+  | sudo tee /tmp/host-agent.deb >/dev/null && sudo apt install -y /tmp/host-agent.deb
 ```
 
 This pulls in `socat`, installs `agent.sh` and the systemd unit, creates the
