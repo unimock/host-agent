@@ -80,15 +80,7 @@ echo "host received: $*"
 EOF
 sudo chmod 750 /root/.host-agent/command
 
-# 2. install the handler and the service
-sudo mkdir -p /opt/host-agent
-sudo cp agent.sh /opt/host-agent/agent.sh
-sudo chmod 750 /opt/host-agent/agent.sh
-sudo cp host-agent.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now host-agent.service
-
-# 3. test
+# 2. test
 echo "command param1 param2" | socat - UNIX-CONNECT:/run/host-agent/agent.sock
 ```
 
