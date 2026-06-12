@@ -1,0 +1,39 @@
+# nfpm package definition — https://nfpm.goreleaser.com
+# Build locally:  VERSION=0.1.0 nfpm package -p deb
+# CI builds on every v* tag (see .github/workflows/release.yml).
+name: host-agent
+arch: all
+platform: linux
+version: ${VERSION}
+section: admin
+priority: optional
+maintainer: unimock <unimock@gate-m.de>
+homepage: https://github.com/unimock/host-agent
+license: MIT
+description: |
+  Minimal host command agent for Docker containers.
+  Lets a container run a small, explicitly defined set of commands on the
+  host via a Unix socket — without mounting the Docker socket or granting
+  any broad host access. Allowed commands are exactly the executable hook
+  scripts in /root/.host-agent.
+depends:
+  - socat
+contents:
+  - src: agent.sh
+    dst: /opt/host-agent/agent.sh
+    file_info:
+      mode: 0750
+  - src: host-agent.service
+    dst: /lib/systemd/system/host-agent.service
+    file_info:
+      mode: 0644
+  # hook directory — the admin drops executable scripts here (one per
+  # allowed command); shipped empty so the path and mode are right
+  - dst: /root/.host-agent
+    type: dir
+    file_info:
+      mode: 0750
+scripts:
+  postinstall: packaging/postinstall.sh
+  preremove: packaging/preremove.sh
+  postremove: packaging/postremove.sh

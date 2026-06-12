@@ -1,0 +1,8 @@
+services:
+  app:
+    image: your-image:latest      # <-- adjust
+    volumes:
+      # mount the DIRECTORY, not the socket file!
+      # (the socket inode changes when the agent restarts)
+      - /run/host-agent:/run/host-agent
+    # the container must have 'socat' (or 'nc -U') installed

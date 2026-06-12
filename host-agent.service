@@ -1,0 +1,22 @@
+# /etc/systemd/system/host-agent.service
+[Unit]
+Description=Host command agent for containers
+After=network.target docker.service
+
+[Service]
+Type=simple
+# creates /run/host-agent; group "docker" + 0750 so the container user
+# can traverse the directory and thus reach the socket.
+# NOTE: RuntimeDirectory ownership follows User=/Group= of the unit
+# (there is no RuntimeDirectoryGroup= directive in systemd).
+RuntimeDirectory=host-agent
+RuntimeDirectoryMode=0750
+Group=docker
+# PATH so the hook scripts can find their binaries (e.g. 'docker')
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# the socket belongs to group "docker" so the container user may use it
+ExecStart=/usr/bin/socat UNIX-LISTEN:/run/host-agent/agent.sock,fork,mode=0660,group=docker EXEC:/opt/host-agent/agent.sh
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
