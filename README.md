@@ -58,7 +58,7 @@ with `curl`:
 
 ```bash
 VER=0.1.0
-curl -fsSL "https://github.com/unimock/host-agent/releases/download/${VER}/host-agent_${VER}_all.deb" \
+curl -fsSL "https://github.com/unimock/host-agent/releases/download/v${VER}/host-agent_${VER}_all.deb" \
   | sudo tee /tmp/host-agent.deb >/dev/null && sudo apt install -y /tmp/host-agent.deb
 ```
 
