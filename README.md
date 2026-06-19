@@ -57,7 +57,7 @@ Pick a version from the
 with `curl`:
 
 ```bash
-VER=0.2.0
+VER=0.2.1
 curl -fsSL "https://github.com/unimock/host-agent/releases/download/v${VER}/host-agent_${VER}_all.deb" \
   | sudo tee /tmp/host-agent.deb >/dev/null && sudo apt install -y /tmp/host-agent.deb
 ```
@@ -66,7 +66,7 @@ This pulls in `socat`, installs `agent.sh` and the systemd unit, creates the
 empty hook directory `/root/.host-agent/`, and enables and starts the service.
 The only remaining step is creating hook scripts (step 1 of the quick start).
 
-To build the package locally: `VERSION=0.2.0 nfpm package -p deb`
+To build the package locally: `VERSION=0.2.1 nfpm package -p deb`
 (requires [nfpm](https://nfpm.goreleaser.com)). CI builds and attaches the
 package to a GitHub release on every `v*` tag.
 
@@ -84,14 +84,14 @@ EOF
 sudo chmod 750 /root/.host-agent/command
 
 # 2. test
-echo "command param1 param2" | socat - UNIX-CONNECT:/run/host-agent/agent.sock
+echo "command param1 param2" | socat -t 60 - UNIX-CONNECT:/run/host-agent/agent.sock
 ```
 
 From inside a container that mounts `/run/host-agent`:
 
 ```bash
-echo "command param1 param2" | socat - UNIX-CONNECT:/run/host-agent/agent.sock
-# or: echo "command param1 param2" | nc -U /run/host-agent/agent.sock
+echo "command param1 param2" | socat -t 60 - UNIX-CONNECT:/run/host-agent/agent.sock
+# or: echo "command param1 param2" | nc -U -q 60 /run/host-agent/agent.sock
 ```
 
 The agent waits until the hook script has finished completely and then replies
@@ -99,6 +99,14 @@ with the hook's exit code as a string (e.g. `0` on success, `1`..`255` on
 failure), or `DENIED: <reason>` if the request was rejected. The hook's STDOUT
 and STDERR are not returned to the client; they are visible on the host via
 `journalctl -t host-agent`.
+
+> **Important — client-side timeout:** `echo` closes its end of the connection
+> as soon as the line is sent (EOF). By default `socat` then waits only `-t 0.5`
+> seconds for the reply before tearing down the connection, so for any hook that
+> runs longer than that you must raise the half-close timeout with `-t <seconds>`
+> (with `nc`, use `-q <seconds>`). Pick a value at least as large as your
+> longest-running hook (e.g. `-t 300` for a backup). Without it, the client
+> disconnects before the agent sends back the exit code.
 
 ## Requirements
 
