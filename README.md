@@ -57,7 +57,7 @@ Pick a version from the
 with `curl`:
 
 ```bash
-VER=0.2.1
+VER=0.2.4
 curl -fsSL "https://github.com/unimock/host-agent/releases/download/v${VER}/host-agent_${VER}_all.deb" \
   | sudo tee /tmp/host-agent.deb >/dev/null && sudo apt install -y /tmp/host-agent.deb
 ```
@@ -66,7 +66,7 @@ This pulls in `socat`, installs `agent.sh` and the systemd unit, creates the
 empty hook directory `/root/.host-agent/`, and enables and starts the service.
 The only remaining step is creating hook scripts (step 1 of the quick start).
 
-To build the package locally: `VERSION=0.2.1 nfpm package -p deb`
+To build the package locally: `VERSION=0.2.4 nfpm package -p deb`
 (requires [nfpm](https://nfpm.goreleaser.com)). CI builds and attaches the
 package to a GitHub release on every `v*` tag.
 

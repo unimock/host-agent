@@ -1,5 +1,5 @@
 # nfpm package definition — https://nfpm.goreleaser.com
-# Build locally:  VERSION=0.2.1 nfpm package -p deb
+# Build locally:  VERSION=0.2.4 nfpm package -p deb
 # CI builds on every v* tag (see .github/workflows/release.yml).
 name: host-agent
 arch: all
