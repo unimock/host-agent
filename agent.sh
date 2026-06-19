@@ -61,16 +61,13 @@ if [ ! -f "$script" ] || [ ! -x "$script" ]; then
 fi
 
 # Call the hook script WITHOUT a shell, with all following parameters.
+# Wait for the script to finish completely, then reply with ONLY the
+# exit code as a string. STDOUT/STDERR of the hook are not returned to
+# the client (they go to the agent's own stderr / journald).
 cmd=("$script" "${parts[@]:1}")
 audit "RUN: $line"
 
-if out=$("${cmd[@]}" 2>&1); then
-  audit "OK: $name (rc=0)"
-  echo "OK"
-  echo "$out"
-else
-  rc=$?
-  audit "FAIL: $name (rc=$rc)"
-  echo "FAIL ($rc)"
-  echo "$out"
-fi
+rc=0
+"${cmd[@]}" >/dev/null 2>&1 || rc=$?
+audit "DONE: $name (rc=$rc)"
+echo "$rc"

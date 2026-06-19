@@ -10,7 +10,7 @@ without mounting the Docker socket or granting any broad host access.
 container                        host
 ─────────                        ────────────────────────────────────────
 echo "backup db1" ──socket──▶ socat ──▶ agent.sh ──▶ /root/.host-agent/backup db1
-                  ◀──────────  "OK" + output
+                  ◀──────────  "0" (exit code)
 ```
 
 1. A systemd unit ([host-agent.service](host-agent.service)) uses `socat` to
@@ -57,7 +57,7 @@ Pick a version from the
 with `curl`:
 
 ```bash
-VER=0.1.0
+VER=0.2.0
 curl -fsSL "https://github.com/unimock/host-agent/releases/download/v${VER}/host-agent_${VER}_all.deb" \
   | sudo tee /tmp/host-agent.deb >/dev/null && sudo apt install -y /tmp/host-agent.deb
 ```
@@ -66,7 +66,7 @@ This pulls in `socat`, installs `agent.sh` and the systemd unit, creates the
 empty hook directory `/root/.host-agent/`, and enables and starts the service.
 The only remaining step is creating hook scripts (step 1 of the quick start).
 
-To build the package locally: `VERSION=0.1.0 nfpm package -p deb`
+To build the package locally: `VERSION=0.2.0 nfpm package -p deb`
 (requires [nfpm](https://nfpm.goreleaser.com)). CI builds and attaches the
 package to a GitHub release on every `v*` tag.
 
@@ -94,8 +94,11 @@ echo "command param1 param2" | socat - UNIX-CONNECT:/run/host-agent/agent.sock
 # or: echo "command param1 param2" | nc -U /run/host-agent/agent.sock
 ```
 
-The reply starts with `OK`, `FAIL (<rc>)`, or `DENIED: <reason>`, followed by
-the command output.
+The agent waits until the hook script has finished completely and then replies
+with the hook's exit code as a string (e.g. `0` on success, `1`..`255` on
+failure), or `DENIED: <reason>` if the request was rejected. The hook's STDOUT
+and STDERR are not returned to the client; they are visible on the host via
+`journalctl -t host-agent`.
 
 ## Requirements
 
