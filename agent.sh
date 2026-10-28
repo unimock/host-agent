@@ -62,8 +62,8 @@ fi
 
 # Call the hook script WITHOUT a shell, with all following parameters.
 # Wait for the script to finish completely, then reply with ONLY the
-# exit code as a string. STDOUT/STDERR of the hook are not returned to
-# the client (they go to the agent's own stderr / journald).
+# exit code as a string. STDOUT/STDERR of the hook are discarded: they
+# are neither returned to the client nor logged (only RUN/DONE is audited).
 cmd=("$script" "${parts[@]:1}")
 audit "RUN: $line"
 

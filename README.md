@@ -97,8 +97,9 @@ echo "command param1 param2" | socat -t 60 - UNIX-CONNECT:/run/host-agent/agent.
 The agent waits until the hook script has finished completely and then replies
 with the hook's exit code as a string (e.g. `0` on success, `1`..`255` on
 failure), or `DENIED: <reason>` if the request was rejected. The hook's STDOUT
-and STDERR are not returned to the client; they are visible on the host via
-`journalctl -t host-agent`.
+and STDERR are discarded — they are neither returned to the client nor logged.
+`journalctl -t host-agent` only shows the request (`RUN: …`) and its exit code
+(`DONE: <name> (rc=N)`).
 
 > **Important — client-side timeout:** `echo` closes its end of the connection
 > as soon as the line is sent (EOF). By default `socat` then waits only `-t 0.5`
