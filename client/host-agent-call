@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# host-agent-call — run a host-agent hook from inside a container as if it
+# were a local command: the hook's STDOUT/STDERR end up on this script's
+# STDOUT/STDERR, and the hook's exit code becomes this script's exit code.
+# Uses the agent's "+out" reply mode (see agent.sh).
+#
+# Usage:   host-agent-call <hook> [args...]
+# Env:     HOST_AGENT_SOCK     socket path  (default /run/host-agent/agent.sock)
+#          HOST_AGENT_TIMEOUT  seconds to wait for the reply (default 3600);
+#                              set at least as high as the slowest hook
+# Exit:    the hook's exit code, 126 if the request was DENIED,
+#          125 if no exit code was received (connection lost / timeout)
+set -uo pipefail
+
+SOCK="${HOST_AGENT_SOCK:-/run/host-agent/agent.sock}"
+TIMEOUT="${HOST_AGENT_TIMEOUT:-3600}"
+
+if [ $# -lt 1 ]; then
+  echo "usage: ${0##*/} <hook> [args...]" >&2
+  exit 2
+fi
+
+rc=
+while IFS= read -r l; do
+  case "$l" in
+    "O "*)    printf '%s\n' "${l#O }" ;;
+    "E "*)    printf '%s\n' "${l#E }" >&2 ;;
+    "X "*)    rc="${l#X }" ;;
+    DENIED:*) echo "host-agent: $l" >&2; exit 126 ;;
+    *)        echo "host-agent: unexpected reply: $l" >&2 ;;
+  esac
+done < <(printf '+out %s\n' "$*" | socat -t "$TIMEOUT" - UNIX-CONNECT:"$SOCK")
+
+if [ -z "$rc" ]; then
+  echo "host-agent: no exit code received (connection lost or timeout)" >&2
+  exit 125
+fi
+exit "$rc"

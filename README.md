@@ -47,6 +47,7 @@ script.
 |---|---|
 | [agent.sh](agent.sh) | Request handler: maps the first token to a hook script and runs it |
 | [host-agent.service](host-agent.service) | systemd unit that exposes the socket via `socat` |
+| [client/host-agent-call](client/host-agent-call) | Optional client for containers: runs a hook in output mode like a local command |
 | [docker-compose.yml](docker-compose.yml) | Snippet showing how to mount the socket directory |
 | [nfpm.yaml](nfpm.yaml) | Package definition; `packaging/` holds the systemd maintainer scripts |
 
@@ -57,7 +58,7 @@ Pick a version from the
 with `curl`:
 
 ```bash
-VER=0.2.5
+VER=0.3.0
 curl -fsSL "https://github.com/unimock/host-agent/releases/download/v${VER}/host-agent_${VER}_all.deb" \
   | sudo tee /tmp/host-agent.deb >/dev/null && sudo apt install -y /tmp/host-agent.deb
 ```
@@ -66,7 +67,7 @@ This pulls in `socat`, installs `agent.sh` and the systemd unit, creates the
 empty hook directory `/root/.host-agent/`, and enables and starts the service.
 The only remaining step is creating hook scripts (step 1 of the quick start).
 
-To build the package locally: `VERSION=0.2.5 nfpm package -p deb`
+To build the package locally: `VERSION=0.3.0 nfpm package -p deb`
 (requires [nfpm](https://nfpm.goreleaser.com)). CI builds and attaches the
 package to a GitHub release on every `v*` tag.
 
@@ -108,6 +109,45 @@ and STDERR are discarded — they are neither returned to the client nor logged.
 > (with `nc`, use `-q <seconds>`). Pick a value at least as large as your
 > longest-running hook (e.g. `-t 300` for a backup). Without it, the client
 > disconnects before the agent sends back the exit code.
+
+## Output mode (`+out`)
+
+Clients that need the hook's output can prefix the request with the marker
+token `+out`. Instead of a single exit-code line, the agent then streams the
+hook's output while it runs, one prefixed line per output line:
+
+```
+$ echo "+out command param1" | socat -t 60 - UNIX-CONNECT:/run/host-agent/agent.sock
+O host received: param1      <- STDOUT line
+E some warning               <- STDERR line
+X 0                          <- exit code, always the last line
+```
+
+Rejected requests still reply `DENIED: <reason>`. Requests without the marker
+behave exactly as before, so existing clients are unaffected. Because `+` is
+not allowed in hook names, the marker cannot collide with a hook; an agent
+older than 0.3.0 answers `DENIED: invalid script name '+out'`.
+
+[client/host-agent-call](client/host-agent-call) wraps this for use inside a
+container. Copy it into the image (it needs `bash` and `socat`); it writes
+`O` lines to STDOUT and `E` lines to STDERR and exits with the hook's exit code
+(126 if denied, 125 if no exit code arrived):
+
+```bash
+host-agent-call backup db1 > backup.log   # STDERR stays on the terminal
+echo "exit code: $?"
+```
+
+`HOST_AGENT_SOCK` overrides the socket path, `HOST_AGENT_TIMEOUT` the reply
+timeout (default 3600 s; see the timeout note above).
+
+Limitations:
+
+- Line based, text only — not suited for binary output.
+- STDOUT and STDERR travel through separate pipes, so the relative order of
+  `O` and `E` lines is only approximate.
+- If a hook leaves background processes holding its STDOUT/STDERR open, the
+  `X` line is sent only after they exit.
 
 ## Requirements
 
