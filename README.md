@@ -13,6 +13,9 @@ echo "backup db1" ──socket──▶ socat ──▶ agent.sh ──▶ /root
                   ◀──────────  "0" (exit code)
 ```
 
+With the `+out` marker the reply also carries the hook's STDOUT/STDERR (see
+[Output mode](#output-mode-out)).
+
 1. A systemd unit ([host-agent.service](host-agent.service)) uses `socat` to
    listen on the Unix socket `/run/host-agent/agent.sock` and spawns
    [agent.sh](agent.sh) per connection.
@@ -98,7 +101,8 @@ echo "command param1 param2" | socat -t 60 - UNIX-CONNECT:/run/host-agent/agent.
 The agent waits until the hook script has finished completely and then replies
 with the hook's exit code as a string (e.g. `0` on success, `1`..`255` on
 failure), or `DENIED: <reason>` if the request was rejected. The hook's STDOUT
-and STDERR are discarded — they are neither returned to the client nor logged.
+and STDERR are discarded — they are neither returned to the client nor logged —
+unless the request uses [output mode](#output-mode-out).
 `journalctl -t host-agent` only shows the request (`RUN: …`) and its exit code
 (`DONE: <name> (rc=N)`).
 
